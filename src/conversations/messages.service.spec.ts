@@ -10,6 +10,7 @@ describe('MessagesService', () => {
   let messageModel: {
     create: jest.Mock;
     find: jest.Mock;
+    deleteMany: jest.Mock;
   };
   let conversationsService: { touch: jest.Mock };
 
@@ -19,6 +20,7 @@ describe('MessagesService', () => {
     messageModel = {
       create: jest.fn(),
       find: jest.fn(),
+      deleteMany: jest.fn(),
     };
     conversationsService = {
       touch: jest.fn().mockResolvedValue(undefined),
@@ -116,6 +118,22 @@ describe('MessagesService', () => {
       );
       expect(sort).toHaveBeenCalledWith({ createdAt: 1 });
       expect(result).toEqual([{ id: 'msg-1' }]);
+    });
+  });
+
+  describe('deleteAllForConversation', () => {
+    it('deletes all messages scoped to the conversation', async () => {
+      const exec = jest.fn().mockResolvedValue({ deletedCount: 2 });
+      messageModel.deleteMany.mockReturnValue({ exec });
+
+      await service.deleteAllForConversation(conversationId);
+
+      expect(messageModel.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversation: expect.any(Types.ObjectId) as Types.ObjectId,
+        }),
+      );
+      expect(exec).toHaveBeenCalled();
     });
   });
 });

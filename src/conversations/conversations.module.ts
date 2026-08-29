@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConversationsService } from './conversations.service';
 import { MessagesService } from './messages.service';
+import { ConversationsController } from './conversations.controller';
 import {
   Conversation,
   ConversationSchema,
@@ -15,6 +16,7 @@ import { Message, MessageSchema } from './schemas/message.schema';
       { name: Message.name, schema: MessageSchema },
     ]),
   ],
+  controllers: [ConversationsController],
   providers: [ConversationsService, MessagesService],
   exports: [ConversationsService, MessagesService],
 })

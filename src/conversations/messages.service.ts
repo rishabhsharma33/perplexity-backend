@@ -33,4 +33,10 @@ export class MessagesService {
       .sort({ createdAt: 1 })
       .exec();
   }
+
+  async deleteAllForConversation(conversationId: string): Promise<void> {
+    await this.messageModel
+      .deleteMany({ conversation: new Types.ObjectId(conversationId) })
+      .exec();
+  }
 }
