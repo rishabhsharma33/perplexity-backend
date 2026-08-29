@@ -14,6 +14,7 @@ NestJS API server for the Perplexity project.
 - `class-validator` / `class-transformer` for DTO validation
 - `@nestjs/swagger` for API documentation
 - `openai` for AI chat completions (streamed via Server-Sent Events)
+- [Tavily](https://tavily.com) for web search grounding / citations
 
 ## Prerequisites
 
@@ -36,9 +37,10 @@ JWT_SECRET=<a-random-secret>
 JWT_EXPIRES_IN_SECONDS=86400
 OPENAI_SECRET_KEY=<your-openai-api-key>
 OPENAI_MODEL=gpt-4o-mini
+TAVILY_API_KEY=<your-tavily-api-key>
 ```
 
-`OPENAI_MODEL` is optional and defaults to `gpt-4o-mini` if omitted.
+`OPENAI_MODEL` is optional and defaults to `gpt-4o-mini` if omitted. `TAVILY_API_KEY` is optional too — without it, chat still works but skips web search (no citations, answers come from the model's own knowledge only). Get a free key at [tavily.com](https://tavily.com).
 
 ### Start MongoDB
 
@@ -94,9 +96,11 @@ Send the JWT from `register`/`login` as `Authorization: Bearer <token>` on subse
 | POST   | `/conversations/:id/messages` | Append a raw message (no AI call — useful for seeding/testing) |
 | POST   | `/conversations/:id/chat`     | Send a user message and stream the AI reply back           |
 
-`POST /conversations/:id/chat` takes `{ "content": "..." }`, saves it as a `user` message, then streams the assistant's reply as Server-Sent Events:
+`POST /conversations/:id/chat` takes `{ "content": "..." }`, saves it as a `user` message, runs a Tavily web search on that content, then streams the assistant's reply as Server-Sent Events:
 
 ```
+data: {"sources":[{"title":"...","url":"...","snippet":"..."}, ...]}
+
 data: {"delta":"Some"}
 
 data: {"delta":" text"}
@@ -104,7 +108,7 @@ data: {"delta":" text"}
 data: {"done":true,"messageId":"..."}
 ```
 
-The full assistant reply is persisted once streaming completes. If the client disconnects mid-stream, the underlying OpenAI request is aborted and no wasted tokens are generated.
+The search results are injected into the model's context (numbered, so it can cite them inline as `[1]`, `[2]`, etc.) and are also emitted as a `sources` event up front, before any text streams in, so a UI can render citations immediately. The full assistant reply — including the sources actually used — is persisted once streaming completes. If the client disconnects mid-stream, both the OpenAI request and any in-flight search are aborted so no wasted tokens/API calls happen.
 
 ## Testing
 
@@ -157,6 +161,9 @@ src/
   ai/
     ai.service.ts                 # OpenAI streaming wrapper
     ai.module.ts
+  search/
+    search.service.ts             # Tavily web search wrapper
+    search.module.ts
 test/                       # e2e tests
 docker-compose.yml          # local MongoDB
 ```

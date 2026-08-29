@@ -4,6 +4,7 @@ import { ConversationsService } from './conversations.service';
 import { MessagesService } from './messages.service';
 import { ConversationsController } from './conversations.controller';
 import { AiModule } from '../ai/ai.module';
+import { SearchModule } from '../search/search.module';
 import {
   Conversation,
   ConversationSchema,
@@ -17,6 +18,7 @@ import { Message, MessageSchema } from './schemas/message.schema';
       { name: Message.name, schema: MessageSchema },
     ]),
     AiModule,
+    SearchModule,
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, MessagesService],
