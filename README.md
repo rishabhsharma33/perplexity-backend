@@ -110,6 +110,16 @@ data: {"done":true,"messageId":"..."}
 
 The search results are injected into the model's context (numbered, so it can cite them inline as `[1]`, `[2]`, etc.) and are also emitted as a `sources` event up front, before any text streams in, so a UI can render citations immediately. The full assistant reply — including the sources actually used — is persisted once streaming completes. If the client disconnects mid-stream, both the OpenAI request and any in-flight search are aborted so no wasted tokens/API calls happen.
 
+## Deployment
+
+Deployed on [Railway](https://railway.app), connected to a [MongoDB Atlas](https://mongodb.com/cloud/atlas) free-tier cluster.
+
+- **Live URL**: https://perplexity-backend-production-4793.up.railway.app
+- **Build**: Railway's Railpack builder auto-detects the `build` script (`nest build`).
+- **Start command**: `npm run start:prod` — set directly on the service instance (Dashboard → Service → Settings → Deploy → Custom Start Command), *not* via a `railway.json`/`.railway/railway.ts` config file. In testing, Railway's current builder silently ignored `deploy.startCommand` from both config file formats for this project, so the service instance setting is the one that's actually authoritative.
+- **Env vars** (set via Railway dashboard or `railway variable set KEY=VALUE`): `MONGODB_URI` (Atlas connection string), `JWT_SECRET`, `JWT_EXPIRES_IN_SECONDS`, `OPENAI_SECRET_KEY`, `OPENAI_MODEL`, `TAVILY_API_KEY`, `CORS_ORIGIN` (comma-separated list — must include the deployed frontend's origin).
+- **Redeploy**: `railway up` from this directory (requires `railway login` once), or push to `main` if GitHub auto-deploy is connected in the dashboard.
+
 ## Testing
 
 ```bash
