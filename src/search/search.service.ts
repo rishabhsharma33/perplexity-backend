@@ -20,6 +20,15 @@ interface TavilySearchResponse {
 const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 const MAX_SNIPPET_LENGTH = 500;
 
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
@@ -58,11 +67,13 @@ export class SearchService {
       }
 
       const data = (await response.json()) as TavilySearchResponse;
-      return data.results.map((result) => ({
-        title: result.title,
-        url: result.url,
-        snippet: result.content.slice(0, MAX_SNIPPET_LENGTH),
-      }));
+      return data.results
+        .filter((result) => isValidHttpUrl(result.url))
+        .map((result) => ({
+          title: result.title,
+          url: result.url,
+          snippet: result.content.slice(0, MAX_SNIPPET_LENGTH),
+        }));
     } catch (error) {
       this.logger.warn(
         `Tavily search errored: ${error instanceof Error ? error.message : String(error)}`,
