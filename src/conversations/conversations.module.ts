@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConversationsService } from './conversations.service';
 import { MessagesService } from './messages.service';
 import { ConversationsController } from './conversations.controller';
+import { AiModule } from '../ai/ai.module';
 import {
   Conversation,
   ConversationSchema,
@@ -15,6 +16,7 @@ import { Message, MessageSchema } from './schemas/message.schema';
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },
     ]),
+    AiModule,
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, MessagesService],

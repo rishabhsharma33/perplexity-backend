@@ -13,6 +13,7 @@ NestJS API server for the Perplexity project.
 - `bcrypt` for password hashing
 - `class-validator` / `class-transformer` for DTO validation
 - `@nestjs/swagger` for API documentation
+- `openai` for AI chat completions (streamed via Server-Sent Events)
 
 ## Prerequisites
 
@@ -33,7 +34,11 @@ PORT=3000
 MONGODB_URI=mongodb://localhost:27018/perplexity
 JWT_SECRET=<a-random-secret>
 JWT_EXPIRES_IN_SECONDS=86400
+OPENAI_SECRET_KEY=<your-openai-api-key>
+OPENAI_MODEL=gpt-4o-mini
 ```
+
+`OPENAI_MODEL` is optional and defaults to `gpt-4o-mini` if omitted.
 
 ### Start MongoDB
 
@@ -77,6 +82,30 @@ Interactive Swagger UI is available at `http://localhost:3000/api/docs` while th
 
 Send the JWT from `register`/`login` as `Authorization: Bearer <token>` on subsequent requests.
 
+### Conversations (`/conversations`, all require Bearer auth)
+
+| Method | Path                          | Description                                              |
+|--------|-------------------------------|------------------------------------------------------------|
+| POST   | `/conversations`              | Create a conversation                                     |
+| GET    | `/conversations`              | List the current user's conversations                     |
+| GET    | `/conversations/:id`          | Get one conversation                                       |
+| DELETE | `/conversations/:id`          | Delete a conversation (and its messages)                   |
+| GET    | `/conversations/:id/messages` | List messages in a conversation, chronological order       |
+| POST   | `/conversations/:id/messages` | Append a raw message (no AI call — useful for seeding/testing) |
+| POST   | `/conversations/:id/chat`     | Send a user message and stream the AI reply back           |
+
+`POST /conversations/:id/chat` takes `{ "content": "..." }`, saves it as a `user` message, then streams the assistant's reply as Server-Sent Events:
+
+```
+data: {"delta":"Some"}
+
+data: {"delta":" text"}
+
+data: {"done":true,"messageId":"..."}
+```
+
+The full assistant reply is persisted once streaming completes. If the client disconnects mid-stream, the underlying OpenAI request is aborted and no wasted tokens are generated.
+
 ## Testing
 
 ```bash
@@ -117,6 +146,17 @@ src/
     auth.service.ts
     auth.controller.ts
     auth.module.ts
+  conversations/
+    schemas/conversation.schema.ts
+    schemas/message.schema.ts     # includes embedded Source subdocument
+    dto/
+    conversations.service.ts      # CRUD + ownership checks
+    messages.service.ts           # create / list / cascade delete
+    conversations.controller.ts   # REST + SSE chat endpoint
+    conversations.module.ts
+  ai/
+    ai.service.ts                 # OpenAI streaming wrapper
+    ai.module.ts
 test/                       # e2e tests
 docker-compose.yml          # local MongoDB
 ```
